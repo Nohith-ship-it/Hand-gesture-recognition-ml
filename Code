@@ -1,0 +1,56 @@
+import cv2
+import mediapipe as mp
+
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+mp_draw = mp.solutions.drawing_utils
+
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(rgb)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+            # Simple gesture logic (example)
+            # Count fingers (basic logic)
+            fingers = []
+
+            # Thumb
+            if hand_landmarks.landmark[4].x < hand_landmarks.landmark[3].x:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+
+            # Other fingers
+            for tip in [8, 12, 16, 20]:
+                if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip-2].y:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+
+            total = sum(fingers)
+
+            if total == 0:
+                gesture = "Fist"
+            elif total == 5:
+                gesture = "Palm"
+            elif total == 2:
+                gesture = "Peace"
+            else:
+                gesture = "Unknown"
+
+            cv2.putText(frame, gesture, (50, 50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+
+    cv2.imshow("Gesture Recognition", frame)
+
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
